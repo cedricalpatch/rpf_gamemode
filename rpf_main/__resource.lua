@@ -43,7 +43,7 @@ server_scripts {
 
 	"server/shop/ammunation.lua",
 	"server/shop/skinshop.lua",
-	--"server/shop/lscustoms_server.lua",
+	"server/shop/lscustoms_server.lua",
 
 	"server/jobs/mostwanted.lua",
 	"server/jobs/assetrecovery.lua",
@@ -103,7 +103,7 @@ client_scripts {
 
 	"client/shop/skinshop.lua",
 	"client/shop/ammunation.lua",
-	--"client/shop/lscustoms.lua",
+	"client/shop/lscustoms.lua",
 
 	"client/jobs/jobs.lua",
 	"client/jobs/mostwanted.lua",
