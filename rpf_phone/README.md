@@ -1,4 +1,4 @@
-# vf_phone
+# rpf_phone
 
 A phone resource which uses built-in natives and scaleforms instead of being built on top of NUI.
 
