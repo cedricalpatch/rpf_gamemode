@@ -2,7 +2,7 @@
 
 A phone resource which uses built-in natives and scaleforms instead of being built on top of NUI.
 
-Uses functionality from `vf_utils`
+Uses functionality from `rpf_utils`
 
 ## Developing
 
