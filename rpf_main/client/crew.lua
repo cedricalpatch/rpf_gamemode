@@ -1,57 +1,57 @@
 local alreadyInvited = false
 
 
+AddEventHandler('lsv:playerDisconnected', function(playerName, player)
+	local playerIndex = Player.isCrewMember(player)
+	if playerIndex then table.remove(Player.crewMembers, playerIndex) end
+end)
+
+
 RegisterNetEvent('lsv:crewLeaved')
 AddEventHandler('lsv:crewLeaved', function(player)
-	if player == Player.ServerId() then
-		Player.CrewMembers = { }
-		Gui.DisplayNotification('You have left the Crew.')
-		return
-	end
+	local playerIndex = Player.isCrewMember(player)
 
-	if table.try_remove(Player.CrewMembers, player) then
-		Gui.DisplayPersonalNotification(Gui.GetPlayerName(player, '~b~')..' has left the Crew.')
+	if playerIndex then
+		FlashMinimapDisplay()
+		table.remove(Player.crewMembers, playerIndex)
+		Gui.DisplayNotification(Gui.GetPlayerName(player, "~b~").." qui votre entreprise.")
+	elseif player == Player.ServerId() then
+		Utils.Clear(Player.crewMembers)
+		Gui.DisplayNotification(Gui.GetPlayerName(player, "~b~").." qui votre entreprise.")
 	end
 end)
 
 
 RegisterNetEvent('lsv:invitedToCrew')
 AddEventHandler('lsv:invitedToCrew', function(player)
-	if #Player.CrewMembers ~= 0 or alreadyInvited then
-		TriggerServerEvent('lsv:alreadyInCrew', player)
-		return
-	end
+	if not Utils.IsTableEmpty(Player.crewMembers) or alreadyInvited then TriggerServerEvent('lsv:alreadyInCrew', player)
+	else
+		PlaySoundFrontend(-1, "CONFIRM_BEEP", "HUD_MINI_GAME_SOUNDSET", true)
+		Gui.DisplayNotification("Je vous propose une offre de travaille .", "CHAR_MULTIPLAYER", Gui.GetPlayerName(player))
 
-	alreadyInvited = true
+		alreadyInvited = true
+		local inviteTimer = GetGameTimer()
 
-	local playerId = GetPlayerFromServerId(player)
-	local handle = RegisterPedheadshot(GetPlayerPed(playerId))
-	while not IsPedheadshotReady(handle) or not IsPedheadshotValid(handle) do Citizen.Wait(0) end
-	local txd = GetPedheadshotTxdString(handle)
+		while true do
+			Citizen.Wait(0)
 
-	FlashMinimapDisplay()
-	PlaySoundFrontend(-1, 'CONFIRM_BEEP', 'HUD_MINI_GAME_SOUNDSET', true)
-	Gui.DisplayPersonalNotification('I\'d like to invite you in my Crew.', txd, GetPlayerName(playerId), '', 7)
+			if GetTimeDifference(GetGameTimer(), inviteTimer) >= Settings.crewInvitationTimeout then
+				Gui.DisplayNotification('Vous avez refusez le travaille offert par '..Gui.GetPlayerName(player))
+				TriggerServerEvent('lsv:declineInvitation', player)
+				alreadyInvited = false
+				return
+			end
 
-	local invitationTimer = Timer.New()
-	while true do
-		Citizen.Wait(0)
+			if IsControlPressed(0, 166) then
+				Utils.Clear(Player.crewMembers)
+				table.insert(Player.crewMembers, player)
+				TriggerServerEvent('lsv:acceptInvitation', player)
+				Gui.DisplayNotification('Vous avez accepte le travaille de '..Gui.GetPlayerName(player)..'.')
+				alreadyInvited = false
+				return
+			end
 
-		if invitationTimer:Elapsed() >= Settings.crewInvitationTimeout then
-			Gui.DisplayPersonalNotification('You have declined Crew invitation from '..Gui.GetPlayerName(player)..'.')
-			TriggerServerEvent('lsv:declineInvitation', player)
-			alreadyInvited = false
-			return
-		end
-
-		Gui.DisplayHelpText('Press ~INPUT_SELECT_CHARACTER_MICHAEL~ to accept Crew Invitation from '..Gui.GetPlayerName(player))
-
-		if IsControlPressed(0, 166) then
-			table.insert(Player.CrewMembers, player)
-			TriggerServerEvent('lsv:acceptInvitation', player)
-			Gui.DisplayPersonalNotification('You have accepted Crew Invitation from '..Gui.GetPlayerName(player)..'.')
-			alreadyInvited = false
-			return
+			Gui.DisplayHelpText('Presse ~INPUT_SELECT_CHARACTER_MICHAEL~ pour accepte le travaille de '..Gui.GetPlayerName(player))
 		end
 	end
 end)
@@ -59,51 +59,44 @@ end)
 
 RegisterNetEvent('lsv:invitationAccepted')
 AddEventHandler('lsv:invitationAccepted', function(player)
-	TriggerServerEvent('lsv:updateCrewMembers', player, Player.CrewMembers)
-	TriggerServerEvent('lsv:addCrewMember', player)
-
-	table.insert(Player.CrewMembers, player)
+	TriggerServerEvent('lsv:updateCrewMembers', player, Player.crewMembers)
+	table.insert(Player.crewMembers, player)
 
 	FlashMinimapDisplay()
-	PlaySoundFrontend(-1, 'CONFIRM_BEEP', 'HUD_MINI_GAME_SOUNDSET', true)
-	Gui.DisplayPersonalNotification(Gui.GetPlayerName(player)..' has accepted your Crew Invitation.')
+	PlaySoundFrontend(-1, "CONFIRM_BEEP", "HUD_MINI_GAME_SOUNDSET", true)
+	Gui.DisplayNotification(Gui.GetPlayerName(player)..' a accepte votre offre de travaille.')
+	TriggerServerEvent('lsv:addCrewMember', player)
 end)
 
 
-RegisterNetEvent('lsv:crewMembersUpdated')
-AddEventHandler('lsv:crewMembersUpdated', function(members)
-	table.iforeach(members, function(member)
-		table.insert(Player.CrewMembers, member)
-	end)
-end)
-
-
-RegisterNetEvent('lsv:addedCrewMember')
-AddEventHandler('lsv:addedCrewMember', function(player, member)
-	if player ~= Player.ServerId() and member ~= Player.ServerId() and Player.IsCrewMember(player) then
-		table.insert(Player.CrewMembers, member)
-
-		FlashMinimapDisplay()
-		PlaySoundFrontend(-1, 'CONFIRM_BEEP', 'HUD_MINI_GAME_SOUNDSET', true)
-		Gui.DisplayNotification(GetPlayerName(member)..' has joined to your Crew.')
+RegisterNetEvent('lsv:crewMembersUpdated', function(members)
+	for _, crewMember in ipairs(members) do
+		table.insert(Player.crewMembers, crewMember)
 	end
 end)
 
 
 RegisterNetEvent('lsv:invitationDeclined')
 AddEventHandler('lsv:invitationDeclined', function(player)
-	PlaySoundFrontend(-1, 'MP_IDLE_TIMER', 'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
-	Gui.DisplayPersonalNotification(Gui.GetPlayerName(player)..' has declined your Crew Invitation.')
+	PlaySoundFrontend(-1, "MP_IDLE_TIMER", "HUD_FRONTEND_DEFAULT_SOUNDSET", true)
+	Gui.DisplayNotification(Gui.GetPlayerName(player)..' a refuse votre offre.')
+end)
+
+
+RegisterNetEvent('lsv:addedCrewMember')
+AddEventHandler('lsv:addedCrewMember', function(player, member, members)
+	if player ~= Player.ServerId() and Player.ServerId() ~= member and Player.isCrewMember(player) then
+		table.insert(Player.crewMembers, member)
+
+		FlashMinimapDisplay()
+		PlaySoundFrontend(-1, "CONFIRM_BEEP", "HUD_MINI_GAME_SOUNDSET", true)
+		Gui.DisplayNotification(GetPlayerName(member)..' a rejoint votre entreprise.')
+	end
 end)
 
 
 RegisterNetEvent('lsv:alreadyInCrew')
 AddEventHandler('lsv:alreadyInCrew', function(player)
-	PlaySoundFrontend(-1, 'MP_IDLE_TIMER', 'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
-	Gui.DisplayNotification(Gui.GetPlayerName(player)..' is already in Crew.')
-end)
-
-
-AddEventHandler('lsv:playerDisconnected', function(_, player)
-	table.try_remove(Player.CrewMembers, player)
+	PlaySoundFrontend(-1, "MP_IDLE_TIMER", "HUD_FRONTEND_DEFAULT_SOUNDSET", true)
+	Gui.DisplayNotification(Gui.GetPlayerName(player).." est deja dans une entreprise.")
 end)

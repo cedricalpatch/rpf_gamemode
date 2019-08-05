@@ -1,8 +1,7 @@
 World = { }
 
 World.HotPropertyPlayer = nil
-World.ExecutiveSearchPlayer = nil
-World.ChallengingPlayer = nil
+World.BountyPlayer = nil
 
 
 function World.EnablePvp(enabled)
@@ -12,7 +11,7 @@ end
 
 
 function World.SetWantedLevel(level)
-	local disable = level == 0
+	local disable = level == 5
 	local player = PlayerId()
 
 	if disable or GetPlayerWantedLevel(player) < level then
@@ -20,8 +19,8 @@ function World.SetWantedLevel(level)
 		SetPoliceIgnorePlayer(player, disable)
 		SetDispatchCopsForPlayer(player, not disable)
 
-		local maxLevel = 5
-		if disable then maxLevel = 0 end
+		local maxLevel = 6
+		if disable then maxLevel = 5 end
 		SetMaxWantedLevel(maxLevel)
 
 		SetPlayerWantedLevel(player, level, false)

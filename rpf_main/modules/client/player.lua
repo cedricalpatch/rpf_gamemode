@@ -1,82 +1,60 @@
 Player = { }
 
+Player.isLoaded = false
 
-Player.Frozen = false
-Player.Loaded = false
-Player.Kills = 0
-Player.Skin = nil
-Player.Moderator = nil
+Player.isFreeze = nil
 
-Player.Killstreak = 0
-Player.Deathstreak = 0
+Player.serverId = nil
 
-Player.VehicleHandle = nil
-Player.Vehicle = nil
+--Player.skin = nil
 
-Player.PatreonTier = nil
+Player.cash = 0
+Player.killstreak = 0
+Player.kills = 0
+Player.deaths = 0
 
-Player.Cash = 0
-Player.Experience = 0
-Player.Rank = 1
-
-Player.CrewMembers = { }
-
-local serverId = nil
-
-local function setSkillStat(stat)
-	StatSetInt(GetHashKey('MP0_LUNG_CAPACITY'), stat, true)
-	StatSetInt(GetHashKey('MP0_STAMINA'), stat, true)
-	StatSetInt(GetHashKey('MP0_STRENGTH'), stat, true)
-	StatSetInt(GetHashKey('MP0_SHOOTING_ABILITY'), stat, true)
-end
+Player.crewMembers = { } -- { serverPlayerId }
 
 
 function Player.Init(playerData)
-	Player.Cash = playerData.Cash
+	Player.serverId = GetPlayerServerId(PlayerId())
+	Player.cash = playerData.Cash
+	Player.kills = playerData.Kills
+	Player.deaths = playerData.Deaths
 
-	serverId = GetPlayerServerId(PlayerId())
+	StatSetInt(GetHashKey('MP0_LUNG_CAPACITY'), playerData.SkillStat, true)
+	StatSetInt(GetHashKey('MP0_STAMINA'), playerData.SkillStat, true)
+	StatSetInt(GetHashKey('MP0_STRENGTH'), playerData.SkillStat, true)
+	StatSetInt(GetHashKey('MP0_SHOOTING_ABILITY'), playerData.SkillStat, true)
 
-	Player.Kills = playerData.Kills
-	Player.PatreonTier = playerData.PatreonTier
-	Player.Moderator = playerData.Moderator
-
-	Player.Experience = playerData.Experience
-	Player.Rank = playerData.Rank
-
-	setSkillStat(playerData.SkillStat)
-
-	SetPlayerMaxArmour(PlayerId(), Settings.maxArmour)
-
-	Skin.ChangePlayerSkin(playerData.SkinModel, true)
+	--Skin.ChangePlayerSkin(playerData.SkinModel, false)
 
 	Player.GiveWeapons(playerData.Weapons)
-
-	Player.Vehicle = playerData.Vehicle
 end
 
 
 function Player.IsActive()
-	return not IsPlayerDead(PlayerId()) and not Player.Frozen and not IsPlayerSwitchInProgress() and not GetIsLoadingScreenActive()
+	return not IsPlayerDead(PlayerId()) and not Player.isFreeze and not IsPlayerSwitchInProgress() and not GetIsLoadingScreenActive()
 end
 
 
 function Player.IsOnMission()
-	return Player.IsActive() and MissionManager.Mission
+	return Player.IsActive() and JobWatcher.IsAnyJobInProgress()
 end
 
 
 function Player.IsInFreeroam()
-	return Player.IsActive() and not MissionManager.Mission and not World.ChallengingPlayer
+	return Player.IsActive() and not Player.IsOnMission()
 end
 
 
 function Player.ServerId()
-	return serverId
+	return Player.serverId
 end
 
 
-function Player.IsCrewMember(id)
-	return table.ifind(Player.CrewMembers, id)
+function Player.isCrewMember(serverId)
+	return Utils.IndexOf(Player.crewMembers, serverId)
 end
 
 
@@ -85,7 +63,7 @@ function Player.GetPlayerWeapons()
 	local ammoTypes = { }
 	local result = { }
 
-	table.foreach(Weapon.GetWeapons(), function(weapon, id)
+	for id, weapon in pairs(Weapon.GetWeapons()) do
 		local weaponHash = GetHashKey(id)
 
 		if HasPedGotWeapon(player, weaponHash, false) then
@@ -106,17 +84,17 @@ function Player.GetPlayerWeapons()
 			end
 
 			playerWeapon.components = { }
-			table.foreach(weapon.components, function(component)
+			for _, component in ipairs(weapon.components) do
 				if HasPedGotWeaponComponent(player, weaponHash, component.hash) then
 					table.insert(playerWeapon.components, component.hash)
 				end
-			end)
+			end
 
 			playerWeapon.tintIndex = GetPedWeaponTintIndex(player, weaponHash)
 
 			table.insert(result, playerWeapon)
 		end
-	end)
+	end
 
 	return result
 end
@@ -125,17 +103,17 @@ end
 function Player.GiveWeapons(weapons)
 	local player = PlayerPedId()
 
-	table.foreach(weapons, function(weapon)
+	for _, weapon in ipairs(weapons) do
 		local weaponHash = GetHashKey(weapon.id)
 
 		GiveWeaponToPed(player, weaponHash, weapon.ammo, false, weapon.selected or false)
 
-		table.foreach(weapon.components, function(component)
+		for _, component in ipairs(weapon.components) do
 			GiveWeaponComponentToPed(player, GetHashKey(weapon.id), component)
-		end)
+		end
 
 		SetPedWeaponTintIndex(player, weaponHash, weapon.tintIndex)
-	end)
+	end
 end
 
 
@@ -150,30 +128,18 @@ function Player.Save()
 	TriggerServerEvent('lsv:playerSaved')
 end
 
-function Player.Position(alive)
-	return GetEntityCoords(PlayerPedId(), alive)
-end
-
-
-function Player.DistanceTo(position, useZ)
-	local playerPosition = Player.Position()
-	return Vdist(playerPosition.x, playerPosition.y, playerPosition.z, position.x, position.y, position.z, useZ)
-end
-
 
 function Player.Teleport(position)
 	local playerPed = PlayerPedId()
 
 	ClearPedTasksImmediately(playerPed)
-	SetEntityCoords(playerPed, position.x, position.y, position.z - 1.0)
+	SetEntityCoords(playerPed, position.x, position.y, position.z)
 
 	RequestCollisionAtCoord(position.x, position.y, position.z)
 	while not HasCollisionLoadedAroundEntity(playerPed) do
 		Citizen.Wait(0)
 		RequestCollisionAtCoord(position.x, position.y, position.z)
 	end
-
-	PlaceObjectOnGroundProperly(playerPed)
 end
 
 
@@ -184,44 +150,13 @@ function Player.SetFreeze(freeze)
 	SetEntityCollision(PlayerPedId(), not freeze)
 	SetPlayerInvincible(PlayerId(), freeze)
 
-	Player.Frozen = freeze
-end
-
-
-function Player.Kill()
-	SetEntityHealth(PlayerPedId(), 0)
-end
-
-
-function Player.ExplodePersonalVehicle()
-	if not Player.VehicleHandle then return end
-	if not NetworkRequestControlOfEntity(Player.VehicleHandle) then
-		Gui.DisplayPersonalNotification('Unable to get control of Personal Vehicle.')
-	else
-		NetworkExplodeVehicle(Player.VehicleHandle, true, true)
-		SetEntityAsNoLongerNeeded(Player.VehicleHandle)
-	end
+	Player.isFreeze = freeze
 end
 
 
 RegisterNetEvent('lsv:cashUpdated')
-AddEventHandler('lsv:cashUpdated', function(cashDiff)
-	Player.Cash = Player.Cash + cashDiff
-end)
-
-
-RegisterNetEvent('lsv:experienceUpdated')
-AddEventHandler('lsv:experienceUpdated', function(exp)
-	Player.Experience = Player.Experience + exp
-	TriggerEvent('lsv:showExperience', exp)
-end)
-
-
-RegisterNetEvent('lsv:playerRankedUp')
-AddEventHandler('lsv:playerRankedUp', function(rank, skillStat)
-	Player.Rank = rank
-	setSkillStat(skillStat)
-	TriggerEvent('lsv:rankUp')
+AddEventHandler('lsv:cashUpdated', function(cash)
+	Player.cash = Player.cash + cash
 end)
 
 

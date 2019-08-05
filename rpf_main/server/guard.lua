@@ -1,11 +1,17 @@
-RegisterNetEvent('lsv:autoBanPlayer')
-AddEventHandler('lsv:autoBanPlayer', function(reason)
-	local target = source
-	local targetName = GetPlayerName(target)
+local logger = Logger:CreateNamedLogger('Guard')
 
-	Db.BanPlayer(target, function()
-		Discord.ReportAutoBanPlayer(target, reason)
-		DropPlayer(target, 'You\'re permanently banned from this server for '..reason..'.')
-		TriggerClientEvent('lsv:playerBanned', -1, targetName, reason)
+RegisterServerEvent('lsv:banPlayer')
+AddEventHandler('lsv:banPlayer', function(cheatName)
+	local player = source
+
+	local bannedPlayerId = GetPlayerIdentifiers(player)[1]
+	local bannedPlayerName = GetPlayerName(player)
+
+	Db.BanPlayer(player, function()
+		logger:Info('Player banned { '..bannedPlayerName..', '..bannedPlayerId..', '..cheatName..' }')
+
+		DropPlayer(player, 'You\'re permanently banned from this server ('..cheatName..').')
+
+		TriggerClientEvent('lsv:playerBanned', -1, bannedPlayerName, cheatName)
 	end)
 end)

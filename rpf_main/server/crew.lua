@@ -6,7 +6,6 @@ end)
 
 RegisterServerEvent('lsv:inviteToCrew')
 AddEventHandler('lsv:inviteToCrew', function(player)
-	if not Scoreboard.IsPlayerOnline(player) then return end
 	TriggerClientEvent('lsv:invitedToCrew', player, source)
 end)
 

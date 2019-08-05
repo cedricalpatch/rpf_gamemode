@@ -4,7 +4,7 @@ Scaleform = { }
 Scaleform.__index = Scaleform
 
 
-local logger = Logger:CreateNamedLogger('Scaleform')
+local logger = Logger:CreateNamedLogger("Scaleform")
 
 local function scaleform_is_valid(scaleform)
 	if not scaleform or scaleform == 0 then
@@ -27,18 +27,18 @@ end
 
 
 local function scaleform_is_int(number)
-	return type(number) == 'number' and not string.find(number, '%.')
+	return type(number) == "number" and not string.find(number, '%.')
 end
 
 
 local function scaleform_render_timed(scaleform, time, renderFunc, ...)
+	if not scaleform_is_valid(scaleform.scaleform) then return end
+
 	local startTime = GetGameTimer()
 	local transOutTime = 500
 
 	while Player.IsActive() and GetTimeDifference(GetGameTimer(), startTime) < time + transOutTime do
 		Citizen.Wait(0)
-
-		if not scaleform:IsValid() then return end
 
 		if GetGameTimer() - startTime > time then
 			scaleform:Call('SHARD_ANIM_OUT', 1, 0.33)
@@ -58,7 +58,7 @@ end
 
 
 function Scaleform:Request(id)
-	if type(id) ~= 'string' then
+	if type(id) ~= "string" then
 		logger:Error('Unable to request id: '..logger:ToString(id))
 		return nil
 	end
@@ -74,11 +74,6 @@ function Scaleform:Request(id)
 end
 
 
-function Scaleform:IsValid()
-	return self.scaleform and self.scaleform ~= 0
-end
-
-
 function Scaleform:Delete()
 	if not scaleform_is_valid(self.scaleform) then return end
 	if not scaleform_has_loaded(self.scaleform) then return end
@@ -91,7 +86,7 @@ end
 
 function Scaleform:Call(func, ...)
 	if not scaleform_is_valid(self.scaleform) then return end
-	if type(func) ~= 'string' then
+	if type(func) ~= "string" then
 		logger:Error('Unable to call scaleform func: '..logger:ToString(func))
 		return
 	end
@@ -99,7 +94,7 @@ function Scaleform:Call(func, ...)
 	PushScaleformMovieFunction(self.scaleform, func)
 
 	local params = { ... }
-	table.foreach(params, function(param)
+	for _, param in ipairs(params) do
 		local paramType = type(param)
 		if paramType == 'string' then
 			PushScaleformMovieFunctionParameterString(param)
@@ -115,7 +110,7 @@ function Scaleform:Call(func, ...)
 			logger:Error('Unknown parameter type for scaleform '..tostring(self.scaleform)..': '..tostring(paramType))
 			return
 		end
-	end)
+	end
 
 	PopScaleformMovieFunctionVoid()
 end

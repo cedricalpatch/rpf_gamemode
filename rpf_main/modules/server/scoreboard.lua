@@ -7,12 +7,6 @@ local function sortScoreboard(l, r)
 	if not l then return false end
 	if not r then return true end
 
-	if l.patreonTier > r.patreonTier then return true end
-	if l.patreonTier < r.patreonTier then return false end
-
-	if l.rank > r.rank then return true end
-	if l.rank < r.rank then return false end
-
 	if l.cash > r.cash then return true end
 	if l.cash < r.cash then return false end
 
@@ -56,16 +50,12 @@ function Scoreboard.AddPlayer(player, playerStats)
 	if not scoreboard[player] then
 		scoreboard[player] = {
 			id = player,
-			patreonTier = playerStats.PatreonTier,
-			moderator = playerStats.Moderator,
 			name = GetPlayerName(player),
 			cash = playerStats.Cash,
 			kdRatio = calculateKdRatio(playerStats.Kills, playerStats.Deaths),
 			kills = playerStats.Kills,
 			deaths = playerStats.Deaths,
 			killstreak = 0,
-			experience = playerStats.Experience,
-			rank = playerStats.Rank,
 		}
 
 		updateScoreboard()
@@ -82,7 +72,7 @@ end
 
 
 function Scoreboard.GetPlayersCount()
-	return table.length(scoreboard)
+	return Utils.GetTableLength(scoreboard)
 end
 
 
@@ -91,38 +81,13 @@ function Scoreboard.IsPlayerOnline(player)
 end
 
 
-function Scoreboard.GetPlayerIdentifier(player)
-	return table.find_if(GetPlayerIdentifiers(player), function(id) return string.find(id, 'license') end)
-end
-
-
 function Scoreboard.GetRandomPlayer()
-	return table.random(scoreboard).id
-end
-
-
-function Scoreboard.IsPlayerModerator(player)
-	return scoreboard[player].moderator
-end
-
-
-function Scoreboard.GetPlayerModeratorLevel(player)
-	return scoreboard[player].moderator
-end
-
-
-function Scoreboard.GetPatreonTier(player)
-	return scoreboard[player].patreonTier
+	return Utils.GetRandom(scoreboard).id
 end
 
 
 function Scoreboard.GetPlayerCash(player)
 	return scoreboard[player].cash
-end
-
-
-function Scoreboard.GetPlayerRank(player)
-	return scoreboard[player].rank
 end
 
 
@@ -137,18 +102,8 @@ end
 
 
 function Scoreboard.UpdateCash(player, cash)
-	scoreboard[player].cash = scoreboard[player].cash + cash
-	updateScoreboard()
-end
-
-
-function Scoreboard.UpdateExperience(player, experience)
-	scoreboard[player].experience = scoreboard[player].experience + experience
-	if Settings.calculateRank(scoreboard[player].experience) > scoreboard[player].rank then
-		local rank = scoreboard[player].rank + 1
-		scoreboard[player].rank = rank
-		TriggerClientEvent('lsv:playerRankedUp', player, rank, Settings.calculateSkillStat(rank))
-		Crate.TrySpawn(player)
+	if scoreboard[player] then
+		scoreboard[player].cash = scoreboard[player].cash + cash
 		updateScoreboard()
 	end
 end
