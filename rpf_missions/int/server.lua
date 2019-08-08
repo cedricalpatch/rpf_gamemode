@@ -2,7 +2,7 @@ local Tunnel = module("vrp", "lib/Tunnel")
 local Proxy = module("vrp", "lib/Proxy")
 
 vRP = Proxy.getInterface("vRP")
-vRPclient = Tunnel.getInterface("vRP","fs_freemode")
+vRPclient = Tunnel.getInterface("vRP","rpf_mission")
 
 RegisterServerEvent('fs_freemode:watch')
 AddEventHandler('fs_freemode:watch', function(price)
