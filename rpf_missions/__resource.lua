@@ -10,7 +10,7 @@ client_scripts {
   'bin/NativeUI.net.dll',
   'bin/ShopMenu.net.dll',
   'lang/en.lua',
-  'libs/events.lua',
+  --'libs/events.lua',
   'libs/warmenu.lua',
   'client.lua',
   'int/comedy.lua',
